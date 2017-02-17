@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>three.js webgl - cloth simulation</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: Monospace;
+            background-color: #000;
+            color: #000;
+            margin: 0px;
+            overflow: hidden;
+        }
+        
+        #info {
+            position: absolute;
+            padding: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        a {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info">
+        <form>
+            <button type="submit" id="animate" onclick="animate()">Start</button>
+        </form>
+    </div>
+    <script src="js/three.js"></script>
+    <script>
+        var cube, weight;
+        var string1, string2, string3;
+        var container, stats;
+        var camera, scene, renderer;
+        var clothGeometry;
+        var sphere;
+        var object;
+        init();
+        // animate();
+
+        function init() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+            // scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0xcce0ff, 500, 10000);
+            // camera
+            camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.x = 100;
+            camera.position.y = 50;
+            camera.position.z = 2000;
+            scene.add(camera);
+            //poles
+            var poleGeo = new THREE.BoxGeometry(15, 550, 51);
+            var poleMat = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                specular: 0x111111,
+                shininess: 100
+            });
+            var mesh = new THREE.Mesh(poleGeo, poleMat);
+            mesh.position.x = -200;
+            mesh.position.y = -62;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            var mesh = new THREE.Mesh(poleGeo, poleMat);
+            mesh.position.x = 200;
+            mesh.position.y = -62;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            var mesh = new THREE.Mesh(new THREE.BoxGeometry(400, 50, 500), poleMat);
+            mesh.position.y = -250 + (900 / 2);
+            mesh.position.x = 0;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            var gg = new THREE.BoxGeometry(25, 20, 51);
+            var mesh = new THREE.Mesh(gg, poleMat);
+            mesh.position.y = -340;
+            mesh.position.x = -200;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            var mesh = new THREE.Mesh(gg, poleMat);
+            mesh.position.y = -340;
+            mesh.position.x = 200;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            //massless strings
+            var stringGeo = new THREE.BoxGeometry(5, 548, 0);
+            var stringMat = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                specular: 0x111111,
+                shininess: 100
+            });
+            string1 = new THREE.Mesh(stringGeo, stringMat);
+            string1.position.x = -270;
+            string1.position.y = -62;
+            string1.receiveShadow = true;
+            string1.castShadow = true;
+            scene.add(string1);
+            //
+            var stringGeo2 = new THREE.BoxGeometry(5, 200, 0);
+            var stringMat2 = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                specular: 0x111111,
+                shininess: 100
+            });
+            string2 = new THREE.Mesh(stringGeo2, stringMat2);
+            string2.position.x = 260;
+            string2.position.y = 125;
+            string2.receiveShadow = true;
+            string2.castShadow = true;
+            scene.add(string2);
+
+            var stringGeo3 = new THREE.BoxGeometry(500, 5, 0);
+            var stringMat3 = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                specular: 0x111111,
+                shininess: 100
+            });
+            string3 = new THREE.Mesh(stringGeo3, stringMat3);
+            string3.position.x = 0;
+            string3.position.y = -250 + (1050 / 2);
+            string3.receiveShadow = true;
+            string3.castShadow = true;
+            scene.add(string3);
+
+            //boxes
+            var geometry = new THREE.BoxGeometry(75, 75, 75);
+            var material = new THREE.MeshBasicMaterial({
+                color: 0x00ff00
+            });
+            cube = new THREE.Mesh(geometry, material);
+            cube.position.set(-270, -320, 0);
+            scene.add(cube);
+            ///weight
+            var geometry1 = new THREE.BoxGeometry(75, 75, 75);
+            var material1 = new THREE.MeshBasicMaterial({
+                color: 0xff0000
+            });
+            weight = new THREE.Mesh(geometry1, material1);
+            weight.position.set(270, 0, 0);
+            scene.add(weight);
+
+            //////
+            //circle to mark center of page
+            var geometry = new THREE.SphereGeometry(10, 32, 32);
+            var material = new THREE.MeshBasicMaterial({
+                color: 0x00000
+            });
+            var sphere = new THREE.Mesh(geometry, material);
+
+            scene.add(sphere);
+            ///////////////
+
+            //pulley
+            var geometry = new THREE.SphereGeometry(40, 32, 32);
+            var material = new THREE.MeshBasicMaterial({
+                color: 0xffff00
+            });
+            var sphere1 = new THREE.Mesh(geometry, material);
+            sphere1.position.set(-250, -250 + (1000 / 2), 0);
+            scene.add(sphere1);
+            var sphere2 = new THREE.Mesh(geometry, material);
+            sphere2.position.set(230, -250 + (1000 / 2), 0);
+            scene.add(sphere2);
+            /////////////////
+
+            ////////////
+            ///test
+            var geometry = new THREE.BufferGeometry();
+
+            var material = new THREE.LineBasicMaterial({
+                color: 0x0000ff
+            });
+
+            var geometry = new THREE.Geometry();
+            geometry.vertices.push(
+                new THREE.Vector3(-100, 0, 0),
+                new THREE.Vector3(0, 100, 0),
+                new THREE.Vector3(100, 0, 0),
+                new THREE.Vector3(0, -100, 0),
+                new THREE.Vector3(-100, 0, 0)
+            );
+
+            var line2 = new THREE.Line(geometry, material);
+            scene.add(line2);
+
+            ///////////////////////
+
+            // renderer
+            renderer = new THREE.WebGLRenderer({
+                antialias: true
+            });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(scene.fog.color);
+            container.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize, false);
+
+        }
+        //
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        var num = 0;
+        //
+        function animate() {
+
+            if (num > 15) {
+                return; //to stop the animation
+            }
+
+            // requestAnimationFrame( render );
+            requestAnimationFrame(animate);
+
+            cube.translateY(10);
+            weight.translateY(-10);
+            string2.translateY(-10);
+
+            num = num + 0.5;
+            //  mesh.position.set(-2.1,0);
+            render();
+
+            console.log(num);
+
+            // stats.update();
+        }
+
+        function render() {
+
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+        render();
+    </script>
+</body>
+
+</html>
